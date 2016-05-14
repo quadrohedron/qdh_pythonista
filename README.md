@@ -1,2 +1,2 @@
-# q_pythonista
+# qdh_pythonista
 iOS-based Python projects made in Pythonista3
