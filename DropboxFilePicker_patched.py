@@ -2,6 +2,11 @@
 # original script: https://gist.github.com/omz/fb180c58c94526e2c40b
 # slightly patched for Pythonista3 by quadrohedron
 
+# OVERVIEW:
+#
+# A simple and useful GUI script for downloading
+# files from your Dropbox.
+
 # IMPORTANT SETUP INSTRUCTIONS:
 # 
 # 1. Go to http://www.dropbox.com/developers/apps (log in if necessary)
