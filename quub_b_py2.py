@@ -1,6 +1,3 @@
-# This is a slight edit of quub_beta.py
-# that works with Pythonista2
-
 import scene, scene_drawing
 from math import sqrt, acos, atan2, sin, cos, pi, hypot
 from motion import *
@@ -46,11 +43,11 @@ class quubcam(scene.Scene):
 		faces=((2,3,6,7,'#ff6060'),(0,1,4,5,'#a00000'),(0,3,4,7,'#60ff60'),(1,2,5,6,'#00a000'),(0,1,3,2,'#6060ff'),(4,5,7,6,'#0000a0'))
 		faceord=sorted([0,1,2,3,4,5],key=lambda t: sum([physvert[n][2] for n in faces[t][:4]]))
 		visvert=[]
-		D=4*2048*.5/(.61*19.8)
+		D=4*self.size.width*.5/(.61*19.8)
 		centx,centy=self.size/2
 		for i in physvert:
 			x,y,z=i
-			rad=D*7/(65-z)
+			rad=D*20/(65-z)
 			visvert.append((rad*x+centx,rad*y+centy))
 		for i in faceord:
 			scene_drawing.fill(faces[i][4])
