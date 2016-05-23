@@ -30,8 +30,10 @@ def cswitch(sender):
 	n=sender.name
 	if n=='boundsw':
 		val='cor'
+		sender.superview['mainscene'].scene.boundson=sender.value
 	elif n=='airsw':
 		val='resk'
+		sender.superview['mainscene'].scene.reson=sender.value
 	sender.superview[val].enabled=sender.value
 
 def setng(sender):
@@ -89,11 +91,11 @@ class vectd:
 		self.YC=y
 	
 	def __mul__(self,arg):
-		return self.x*arg,self.y*arg
+		return vectd(self.x*arg,self.y*arg)
 	
 	def __iadd__(self,arg):
-		self.x+arg[0]
-		self.y+arg[1]
+		self.x+arg.x
+		self.y+arg.y
 		return self
 
 class particle:
@@ -113,6 +115,8 @@ class xploder(scene.Scene):
 		self.PS=None
 		self.timestamp=None
 		self.deltat=0
+		self.boundson=True
+		self.reson=True
 	
 	def update(self):
 		if self.state=='setup':
@@ -134,14 +138,48 @@ class xploder(scene.Scene):
 			DT=TS-self.timestamp
 			self.deltat+=DT
 			self.timestamp=TS
-			for i in range(len(self.PS)):
-				self.PS[i].POS.XC+=self.PS[i].VEL.XC*100*DT
-				self.PS[i].POS.YC+=self.PS[i].VEL.YC*100*DT
-				self.PS[i].VEL.XC+=self.g.XC*DT
-				self.PS[i].VEL.YC+=self.g.YC*DT
-		for j in range(len(self.PS)):
-			scdr.fill(self.PS[j].COL)
-			scdr.rect(self.PS[j].POS.XC-2, self.PS[j].POS.YC-2,4,4)
+			for i in self.PS:
+				if self.boundson:
+					COR=self.cdict['cor']
+					NX=i.POS.XC+i.VEL.XC*100*DT
+					if NX<0:
+						i.POS.XC=0
+						i.VEL.XC*=-COR
+						i.VEL.YC*=COR
+					elif NX>723:
+						i.POS.XC=723
+						i.VEL.XC*=-COR
+						i.VEL.YC*=COR
+					else:
+						i.POS.XC=NX
+					NY=i.POS.YC+i.VEL.YC*100*DT
+					if NY<0:
+						i.POS.YC=0
+						i.VEL.XC*=COR
+						i.VEL.YC*=-COR
+					elif NY>703:
+						i.POS.YC=703
+						i.VEL.XC*=COR
+						i.VEL.YC*=-COR
+					else:
+						i.POS.YC=NY
+					NX=i.POS.XC+i.VEL.XC*100*DT
+					if NX<0:
+						i.POS.XC=0
+						i.VEL.XC*=-COR
+						i.VEL.YC*=COR
+					elif NX>723:
+						i.POS.XC=723
+						i.VEL.XC*=-COR
+						i.VEL.YC*=COR
+				else:
+					i.POS.XC+=i.VEL.XC*100*DT
+					i.POS.YC+=i.VEL.YC*100*DT
+				i.VEL.XC+=self.g.XC*DT
+				i.VEL.YC+=self.g.YC*DT
+		for i in range(len(self.PS)):
+			scdr.fill(self.PS[i].COL)
+			scdr.rect(self.PS[i].POS.XC-2, self.PS[i].POS.YC-2,4,4)
 		if self.mainview:
 			self.mainview['timelabel'].text='T = '+str(self.deltat)
 
