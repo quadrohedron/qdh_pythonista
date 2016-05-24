@@ -1,7 +1,7 @@
 import scene
 import scene_drawing as scdr
 import ui,random,time
-from math import sin,cos,pi,floor
+from math import sin,cos,pi,floor,hypot
 
 tnames=['Gx','Gy','vmu','sigvmu','thmu','sigthmu',
 'g','cor','resk','npart']
@@ -66,7 +66,8 @@ def resetsim(sender):
 	xscene=sender.superview['mainscene'].scene
 	xscene.deltat=0
 	xscene.state='setup'
-	xscene.PS=None
+	xscene.ghostps=None
+	xscene.realps=None
 
 def tfee(sender):
 	text=''
@@ -81,28 +82,49 @@ def tfee(sender):
 	xscene=sender.superview['mainscene'].scene
 	xscene.cdict[sender.name]=eval(text)
 	if sender.name=='npart':
-		xscene.PS=None
+		xscene.ghostps=None
+		xscene.realps=None
 	sender.text=text
 	resetsim(sender)
 
 class vectd:
 	def __init__(self,x,y):
-		self.XC=x
-		self.YC=y
+		self.x=x
+		self.y=y
 	
 	def __mul__(self,arg):
 		return vectd(self.x*arg,self.y*arg)
 	
+	def __add__(self,arg):
+		return vectd(self.x+arg.x,self.y+arg.y)
+	
 	def __iadd__(self,arg):
-		self.x+arg.x
-		self.y+arg.y
-		return self
+		return self+arg
+	
+	def __sub__(self,arg):
+		return vectd(self.x-arg.x,self.y-arg.y)
+	
+	def __isub__(self,arg):
+		return vectd(self.x-arg.x,self.y-arg.y)
+	
+	def dot(self,arg):
+		return self.x*arg.x+self.y*arg.y
+	
+	def __abs__(self):
+		return hypot(self.x,self.y)
+	
+	def norm(self):
+		a=abs(self)
+		if a:
+			return vectd(self.x/a,self.y/a)
+		else:
+			return vectd(0,0)
 
 class particle:
 	def __init__(self,p,v,c):
-		self.POS=p
-		self.VEL=v
-		self.COL=c
+		self.p=p
+		self.v=v
+		self.c=c
 
 class xploder(scene.Scene):	
 	def setup(self):
@@ -112,7 +134,8 @@ class xploder(scene.Scene):
 		self.tlabel=None
 		self.cdict={'npart': 250, 'Gx': 362, 'Gy': 352, 'g': 9.81, 'cor': 0, 'sigvmu': 0, 'sigthmu': 0, 'resk': 0, 'vmu': 1, 'thmu': -1}
 		self.g=None
-		self.PS=None
+		self.ghostps=None
+		self.realps=None
 		self.timestamp=None
 		self.deltat=0
 		self.boundson=True
@@ -120,10 +143,10 @@ class xploder(scene.Scene):
 	
 	def update(self):
 		if self.state=='setup':
-			if not self.PS:
+			if not self.ghostps or self.realps:
 				cd=self.cdict
 				Gx,Gy,npart,vmu,sigvmu,thmu,sigthmu= cd['Gx'],cd['Gy'],cd['npart'],cd['vmu'],cd['sigvmu'], cd['thmu']*pi/180,cd['sigthmu']*pi/180
-				self.PS=[]
+				self.ghostps=[]
 				for i in range(npart):
 					V=random.gauss(vmu,sigvmu)
 					if thmu<0:
@@ -132,54 +155,62 @@ class xploder(scene.Scene):
 						th=random.gauss(thmu,sigthmu)
 					v=vectd(V*cos(th),V*sin(th))
 					c=hsv2rgb(360*random.random(), min(100,random.gauss(100,15)),min(100, random.gauss(100,25)))
-					self.PS.append(particle(vectd(Gx,Gy),v,c))
+					self.ghostps.append(particle(vectd(Gx,Gy),v,c))
+					self.realps=[]
 		elif self.state=='running':
-			TS=time.time()
-			DT=TS-self.timestamp
+#			TS=time.time()
+#			DT=TS-self.timestamp
+			DT=1/60
 			self.deltat+=DT
-			self.timestamp=TS
-			for i in self.PS:
+#			self.timestamp=TS
+			ghlen=len(self.ghostps)
+			resk=self.cdict['resk']
+			for j in range(ghlen+len(self.realps)):
+				if j>=ghlen:
+					i=self.realps[j-ghlen]
+				else:
+					i=self.ghostps[j]
 				if self.boundson:
 					COR=self.cdict['cor']
-					NX=i.POS.XC+i.VEL.XC*100*DT
-					if NX<0:
-						i.POS.XC=0
-						i.VEL.XC*=-COR
-						i.VEL.YC*=COR
-					elif NX>723:
-						i.POS.XC=723
-						i.VEL.XC*=-COR
-						i.VEL.YC*=COR
+					nx=i.p.x+i.v.x*100*DT
+					if nx<0:
+						i.p.x=0
+						i.v.x*=-COR
+						i.v.y*=COR
+					elif nx>723:
+						i.p.x=723
+						i.v.x*=-COR
+						i.v.y*=COR
 					else:
-						i.POS.XC=NX
-					NY=i.POS.YC+i.VEL.YC*100*DT
-					if NY<0:
-						i.POS.YC=0
-						i.VEL.XC*=COR
-						i.VEL.YC*=-COR
-					elif NY>703:
-						i.POS.YC=703
-						i.VEL.XC*=COR
-						i.VEL.YC*=-COR
+						i.p.x=nx
+					ny=i.p.y+i.v.y*100*DT
+					if ny<0:
+						i.p.y=0
+						i.v.x*=COR
+						i.v.y*=-COR
+					elif ny>703:
+						i.p.y=703
+						i.v.x*=COR
+						i.v.y*=-COR
 					else:
-						i.POS.YC=NY
-					NX=i.POS.XC+i.VEL.XC*100*DT
-					if NX<0:
-						i.POS.XC=0
-						i.VEL.XC*=-COR
-						i.VEL.YC*=COR
-					elif NX>723:
-						i.POS.XC=723
-						i.VEL.XC*=-COR
-						i.VEL.YC*=COR
+						i.p.y=ny
+					nx=i.p.x+i.v.x*100*DT
+					if nx<0:
+						i.p.x=0
+						i.v.x*=-COR
+						i.v.y*=COR
+					elif nx>723:
+						i.p.x=723
+						i.v.x*=-COR
+						i.v.y*=COR
 				else:
-					i.POS.XC+=i.VEL.XC*100*DT
-					i.POS.YC+=i.VEL.YC*100*DT
-				i.VEL.XC+=self.g.XC*DT
-				i.VEL.YC+=self.g.YC*DT
-		for i in range(len(self.PS)):
-			scdr.fill(self.PS[i].COL)
-			scdr.rect(self.PS[i].POS.XC-2, self.PS[i].POS.YC-2,4,4)
+					i.p+=i.v*(100*DT)
+				if self.reson:
+					i.v-=i.v.norm()*(i.v.dot(i.v)*resk)
+				i.v+=self.g*DT
+		for i in self.ghostps+self.realps:
+			scdr.fill(i.c)
+			scdr.rect(i.p.x-2,i.p.y-2,4,4)
 		if self.mainview:
 			self.mainview['timelabel'].text='T = '+str(self.deltat)
 
