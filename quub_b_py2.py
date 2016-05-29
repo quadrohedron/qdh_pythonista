@@ -9,7 +9,10 @@ def magnorm():
 	else:
 		v=v[:3]
 		l=sum(map(lambda x: x**2,v))**.5
-		return tuple(map(lambda x: x/l,v))
+		if l:
+			return tuple(map(lambda x: x/l,v))
+		else:
+			return (0,0,0)
 
 class quubcam(scene.Scene):
 	def setup(self):
@@ -40,7 +43,7 @@ class quubcam(scene.Scene):
 			cy=i[0]*ue[1]+i[1]*un[1]+i[2]*uu[1]
 			cz=i[0]*ue[2]+i[1]*un[2]+i[2]*uu[2]
 			physvert[j]=[cx,cy,cz]
-		faces=((2,3,6,7,'#ff6060'),(0,1,4,5,'#a00000'),(0,3,4,7,'#60ff60'),(1,2,5,6,'#00a000'),(0,1,3,2,'#6060ff'),(4,5,7,6,'#0000a0'))
+		faces=((2,3,6,7,(1,.38,.38,.9)),(0,1,4,5,(.63,0,0,.9)),(0,3,4,7,(.38,1,.38,.9)),(1,2,5,6,(0,.63,0,.9)),(0,1,3,2,(.38,.38,1,.9)),(4,5,7,6,(0,0,.63,.9)))
 		faceord=sorted([0,1,2,3,4,5],key=lambda t: sum([physvert[n][2] for n in faces[t][:4]]))
 		visvert=[]
 		D=4*self.size.width*.5/(.61*19.8)
